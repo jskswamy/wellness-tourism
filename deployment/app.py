@@ -264,13 +264,51 @@ def main():
                         """, unsafe_allow_html=True)
                         st.warning("**Low Purchase Intent.** Consider adjusting the product pitch.")
 
-                # Show probabilities
-                st.subheader("📊 Prediction Probabilities")
-                prob_df = pd.DataFrame({
-                    "Outcome": ["No Purchase", "Purchase"],
-                    "Probability": [probability[0], probability[1]]
-                })
-                st.bar_chart(prob_df.set_index("Outcome"))
+                # Show gauge chart for prediction confidence
+                st.subheader("📊 Purchase Likelihood Gauge")
+
+                # Calculate gauge value: -1 (No Purchase) to +1 (Purchase)
+                # Map probability to gauge: if Purchase prob > 0.5, positive; else negative
+                gauge_value = probability[1] - probability[0]  # Range: -1 to +1
+
+                import plotly.graph_objects as go
+
+                fig = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=gauge_value,
+                    number={"suffix": "", "font": {"size": 40}},
+                    gauge={
+                        "axis": {"range": [-1, 1], "tickwidth": 1, "tickcolor": "darkgray",
+                                 "ticktext": ["No Purchase", "", "Neutral", "", "Purchase"],
+                                 "tickvals": [-1, -0.5, 0, 0.5, 1]},
+                        "bar": {"color": "darkblue", "thickness": 0.3},
+                        "bgcolor": "white",
+                        "borderwidth": 2,
+                        "bordercolor": "gray",
+                        "steps": [
+                            {"range": [-1, -0.5], "color": "#ff4444"},
+                            {"range": [-0.5, 0], "color": "#ffaaaa"},
+                            {"range": [0, 0.5], "color": "#aaffaa"},
+                            {"range": [0.5, 1], "color": "#44ff44"}
+                        ],
+                        "threshold": {
+                            "line": {"color": "black", "width": 4},
+                            "thickness": 0.75,
+                            "value": gauge_value
+                        }
+                    },
+                    title={"text": f"<b>{'Purchase' if gauge_value > 0 else 'No Purchase'}</b><br>"
+                                   f"<span style='font-size:0.8em'>Confidence: {max(probability)*100:.1f}%</span>",
+                           "font": {"size": 16}}
+                ))
+
+                fig.update_layout(
+                    height=300,
+                    margin=dict(l=30, r=30, t=80, b=30),
+                    font={"family": "Arial"}
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
 
             except Exception as e:
                 st.error(f"Prediction Error: {str(e)}")
