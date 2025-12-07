@@ -48,10 +48,15 @@ st.markdown("""
 def load_model():
     """Download and load model from Hugging Face Model Hub."""
     try:
+        from huggingface_hub import HfApi
+        api = HfApi()
+        repo_info = api.repo_info(repo_id=MODEL_REPO_ID)
+        revision = repo_info.sha[:7]  # Short SHA as version
+
         model_path = hf_hub_download(repo_id=MODEL_REPO_ID, filename=MODEL_FILENAME)
-        return joblib.load(model_path), None
+        return joblib.load(model_path), revision, None
     except Exception as e:
-        return None, str(e)
+        return None, None, str(e)
 
 
 @st.cache_resource
@@ -110,7 +115,7 @@ def prepare_input(data: dict) -> pd.DataFrame:
 def main():
     st.markdown('<div class="main-header">🏝️ Wellness Tourism Package Predictor</div>', unsafe_allow_html=True)
 
-    model, error = load_model()
+    model, revision, error = load_model()
     if error:
         st.error(f"Failed to load model: {error}")
         return
@@ -138,6 +143,8 @@ def main():
         ### 🤖 Model Performance
 
         **Model:** {model_name}
+
+        **Version:** `{revision}`
 
         **Accuracy:** {accuracy:.1%}
 
