@@ -1,0 +1,114 @@
+name: Wellness Tourism MLOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  register-dataset:
+    name: Register Dataset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Register dataset to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python data_register.py \
+            --data-path tourism.csv \
+            --repo-id ${{ secrets.HF_USERNAME }}/wellness-tourism-data
+
+  data-prep:
+    name: Data Preparation
+    needs: register-dataset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare data
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python prep.py \
+            --input-source hf \
+            --input-repo-id ${{ secrets.HF_USERNAME }}/wellness-tourism-data \
+            --output-repo-id ${{ secrets.HF_USERNAME }}/wellness-tourism-data
+
+  model-training:
+    name: Model Training
+    needs: data-prep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start MLflow server
+        run: |
+          nohup mlflow ui --host 0.0.0.0 --port 5000 &
+          sleep 5
+
+      - name: Train model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python train.py \
+            --input-source hf \
+            --data-repo-id ${{ secrets.HF_USERNAME }}/wellness-tourism-data \
+            --experiment-name wellness-tourism-ci \
+            --output-dir models \
+            --model-repo-id ${{ secrets.HF_USERNAME }}/wellness-tourism-model
+
+  deploy-hosting:
+    name: Deploy to HF Spaces
+    needs: model-training
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Deploy to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE_NAME: wellness-tourism-predictor
+        run: python hosting/hosting.py

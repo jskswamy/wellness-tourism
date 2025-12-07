@@ -1,0 +1,57 @@
+# Environment and secrets
+.env
+.envrc
+*.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MLflow artifacts (generated during training)
+mlruns/
+mlartifacts/
+
+# Model artifacts (generated during training)
+models/
+*.joblib
+*.pkl
+*.h5
+
+# Data artifacts (generated during prep)
+data/
+train.csv
+test.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
