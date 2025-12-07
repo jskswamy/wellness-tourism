@@ -54,6 +54,36 @@ def load_model():
         return None, str(e)
 
 
+@st.cache_resource
+def get_model_info():
+    """Fetch model info from HuggingFace model card (README.md)."""
+    try:
+        import yaml
+        readme_path = hf_hub_download(repo_id=MODEL_REPO_ID, filename="README.md")
+        with open(readme_path, "r") as f:
+            content = f.read()
+
+        # Parse YAML frontmatter
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                frontmatter = yaml.safe_load(parts[1])
+                model_index = frontmatter.get("model-index", [{}])[0]
+                model_name = model_index.get("name", "ML Classifier")
+
+                # Extract metrics
+                metrics = {}
+                results = model_index.get("results", [{}])
+                if results:
+                    for m in results[0].get("metrics", []):
+                        metrics[m.get("type", "")] = m.get("value", 0)
+
+                return {"name": model_name, "metrics": metrics}
+    except Exception:
+        pass
+    return {"name": "ML Classifier", "metrics": {}}
+
+
 def prepare_input(data: dict) -> pd.DataFrame:
     """Prepare input data with feature engineering."""
     df = pd.DataFrame([data])
@@ -85,7 +115,13 @@ def main():
         st.error(f"Failed to load model: {error}")
         return
 
-    # Sidebar - About
+    # Sidebar - About with dynamic model info
+    model_info = get_model_info()
+    model_name = model_info["name"].replace("_", " ").title()
+    metrics = model_info["metrics"]
+    accuracy = metrics.get("accuracy", 0)
+    f1 = metrics.get("f1", 0)
+
     with st.sidebar:
         st.markdown(f"""
         ### 🏝️ About
@@ -99,7 +135,8 @@ def main():
         - 🛫 Travel history
         - 👥 Family size
 
-        **Model:** Ensemble classifier trained on 4,888 records
+        **Model:** {model_name}
+        **Accuracy:** {accuracy:.1%} | **F1:** {f1:.2f}
 
         [View Model Card](https://huggingface.co/{MODEL_REPO_ID})
         """)
@@ -122,13 +159,15 @@ def main():
         own_car = 1 if own_car == "Yes" else 0
 
     with col2:
-        st.markdown('<p class="section-header">💼 Trip & Sales</p>', unsafe_allow_html=True)
+        st.markdown('<p class="section-header">🛫 Trip Details</p>', unsafe_allow_html=True)
         type_of_contact = st.selectbox("Contact Type", ["Self Enquiry", "Company Invited"])
-        product_pitched = st.selectbox("Product", ["Basic", "Standard", "Deluxe", "Super Deluxe", "King"])
         num_persons = st.number_input("Persons Visiting", 1, 10, 3)
         num_children = st.number_input("Children (<5 yrs)", 0, 5, 0)
         num_trips = st.number_input("Trips/Year", 0, 20, 3)
         preferred_star = st.selectbox("Hotel Rating", [3.0, 3.5, 4.0, 4.5, 5.0], index=2)
+
+        st.markdown('<p class="section-header">📞 Sales Interaction</p>', unsafe_allow_html=True)
+        product_pitched = st.selectbox("Product Pitched", ["Basic", "Standard", "Deluxe", "Super Deluxe", "King"])
         duration_of_pitch = st.number_input("Pitch Duration (min)", 1, 60, 15)
         num_followups = st.number_input("Follow-ups", 0, 10, 4)
         pitch_satisfaction = st.select_slider("Satisfaction", options=[1, 2, 3, 4, 5], value=4)
