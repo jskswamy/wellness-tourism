@@ -145,13 +145,36 @@ def main():
     # Sidebar
     with st.sidebar:
         st.title("About")
-        st.markdown("""
-        This application predicts whether a customer will purchase
-        the Wellness Tourism Package based on their demographics
-        and interaction history.
+        st.markdown(f"""
+        ### 🏝️ Wellness Tourism Predictor
 
-        **Model:** Loaded from Hugging Face Model Hub
-        **Architecture:** Streamlit + hf_hub_download
+        **Business Context:**
+        "Visit with Us" travel company wants to identify customers
+        likely to purchase their new Wellness Tourism Package.
+
+        **How it works:**
+        Enter customer details and the model predicts purchase likelihood
+        based on patterns learned from historical data.
+
+        ---
+
+        **Key Predictive Factors:**
+        - 💼 Occupation & Income level
+        - 🎯 Pitch satisfaction score
+        - 🛫 Travel history & Passport status
+        - 👥 Family size (travelers + children)
+
+        ---
+
+        **Model Details:**
+        - 🤖 Algorithm: Ensemble classifier
+        - 📊 Dataset: 4,888 customer records
+        - 🎯 Optimized for: F1 Score
+        - 🔗 [View Model Card](https://huggingface.co/{MODEL_REPO_ID})
+
+        ---
+
+        *Built with Streamlit + scikit-learn*
         """)
 
     # Create form with two columns
