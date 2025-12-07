@@ -286,7 +286,7 @@ def train_models(X_train, X_test, y_train, y_test, preprocessor, experiment_name
 
             # Log model with descriptive name
             model_artifact_name = f"{name.lower()}_model"
-            mlflow.sklearn.log_model(best_pipeline, model_artifact_name)
+            mlflow.sklearn.log_model(best_pipeline, name=model_artifact_name)
 
             print(f"\n{name} Results:")
             print(f"  Best CV Score: {search.best_score_:.4f}")
