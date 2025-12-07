@@ -339,10 +339,11 @@ def save_model(model, output_dir: str, numerical_features: list, categorical_fea
     return model_path, feature_info_path
 
 
-def upload_model_to_hf(model_path: str, repo_id: str, hf_token: str = None):
-    """Upload model to Hugging Face Model Hub."""
+def upload_model_to_hf(model_path: str, repo_id: str, metrics: dict, model_name: str, hf_token: str = None):
+    """Upload model to Hugging Face Model Hub with model card."""
     from huggingface_hub import create_repo
     from huggingface_hub.utils import RepositoryNotFoundError
+    import tempfile
 
     token = hf_token or os.environ.get("HF_TOKEN")
     if token:
@@ -358,13 +359,126 @@ def upload_model_to_hf(model_path: str, repo_id: str, hf_token: str = None):
         print(f"Creating model repo: {repo_id}")
         create_repo(repo_id=repo_id, repo_type="model", private=False)
 
+    # Create model card with model-index for evaluation results
+    model_card = f'''---
+library_name: sklearn
+license: mit
+tags:
+  - tabular-classification
+  - sklearn
+  - wellness-tourism
+datasets:
+  - {repo_id.split("/")[0]}/wellness-tourism-data
+metrics:
+  - accuracy
+  - f1
+  - precision
+  - recall
+  - roc_auc
+model-index:
+  - name: {model_name}
+    results:
+      - task:
+          type: tabular-classification
+          name: Binary Classification
+        dataset:
+          name: Wellness Tourism Dataset
+          type: {repo_id.split("/")[0]}/wellness-tourism-data
+        metrics:
+          - name: Accuracy
+            type: accuracy
+            value: {metrics.get("test_accuracy", 0):.4f}
+          - name: F1 Score
+            type: f1
+            value: {metrics.get("f1_score", 0):.4f}
+          - name: Precision
+            type: precision
+            value: {metrics.get("precision", 0):.4f}
+          - name: Recall
+            type: recall
+            value: {metrics.get("recall", 0):.4f}
+          - name: ROC AUC
+            type: roc_auc
+            value: {metrics.get("roc_auc", 0):.4f}
+---
+
+# Wellness Tourism Package Prediction Model
+
+This model predicts whether a customer will purchase the Wellness Tourism Package offered by "Visit with Us" travel company.
+
+## Model Description
+
+- **Model Type:** {model_name}
+- **Task:** Binary Classification
+- **Framework:** scikit-learn
+
+## Intended Use
+
+This model is designed to help travel companies identify potential customers for wellness tourism packages based on customer demographics and travel history.
+
+## Training Data
+
+The model was trained on the Wellness Tourism Dataset containing customer information including:
+- Demographics (Age, Gender, Marital Status)
+- Professional details (Occupation, Designation, Monthly Income)
+- Travel history (Number of Trips, Passport status)
+- Pitch information (Duration, Property Star preference, Satisfaction Score)
+
+## Evaluation Results
+
+| Metric | Value |
+|--------|-------|
+| Accuracy | {metrics.get("test_accuracy", 0):.4f} |
+| F1 Score | {metrics.get("f1_score", 0):.4f} |
+| Precision | {metrics.get("precision", 0):.4f} |
+| Recall | {metrics.get("recall", 0):.4f} |
+| ROC AUC | {metrics.get("roc_auc", 0):.4f} |
+
+## Usage
+
+```python
+import joblib
+from huggingface_hub import hf_hub_download
+
+# Download model
+model_path = hf_hub_download(
+    repo_id="{repo_id}",
+    filename="wellness_tourism_model.joblib"
+)
+
+# Load and use
+model = joblib.load(model_path)
+predictions = model.predict(your_data)
+```
+
+## Limitations
+
+- Model performance may vary on data significantly different from the training distribution
+- Predictions should be used as one factor among many in business decisions
+'''
+
     print(f"Uploading model to: {repo_id}")
+
+    # Upload model file
     api.upload_file(
         path_or_fileobj=model_path,
         path_in_repo="wellness_tourism_model.joblib",
         repo_id=repo_id,
         repo_type="model",
         commit_message="Upload trained model"
+    )
+
+    # Upload model card
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+        f.write(model_card)
+        readme_path = f.name
+
+    api.upload_file(
+        path_or_fileobj=readme_path,
+        path_in_repo="README.md",
+        repo_id=repo_id,
+        repo_type="model",
+        commit_message="Add model card with evaluation results"
     )
 
     print(f"Model uploaded to: https://huggingface.co/{repo_id}")
@@ -450,7 +564,12 @@ def main():
 
     # Upload to Hugging Face if repo ID provided
     if args.model_repo_id:
-        upload_model_to_hf(model_path, args.model_repo_id, args.hf_token)
+        best_metrics = results[best_model_name]["metrics"]
+        upload_model_to_hf(
+            model_path, args.model_repo_id,
+            best_metrics, best_model_name,
+            args.hf_token
+        )
 
     print("\nTraining completed successfully!")
 
