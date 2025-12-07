@@ -31,7 +31,7 @@ st.set_page_config(
 # Compact CSS
 st.markdown("""
 <style>
-    .block-container { padding-top: 1rem; padding-bottom: 0; max-width: 100%; }
+    .block-container { padding-top: 2.5rem; padding-bottom: 0; max-width: 100%; }
     div[data-testid="stVerticalBlock"] > div { gap: 0.5rem; }
     .stSelectbox, .stNumberInput, .stRadio { margin-bottom: 0; }
     div[data-testid="stNumberInput"] > div { margin-bottom: 0; }
@@ -104,72 +104,34 @@ def main():
         [View Model Card](https://huggingface.co/{MODEL_REPO_ID})
         """)
 
-    # Main layout: Inputs (2/3) | Prediction (1/3)
-    input_col, pred_col = st.columns([2, 1])
+    # 3 columns layout (no nested columns to avoid Streamlit error)
+    col1, col2, col3 = st.columns(3)
 
-    with input_col:
-        # Two sub-columns for inputs
-        left, right = st.columns(2)
+    with col1:
+        st.markdown('<p class="section-header">📋 Demographics</p>', unsafe_allow_html=True)
+        age = st.number_input("Age", 18, 80, 35)
+        monthly_income = st.number_input("Income ($)", 5000, 100000, 25000, step=5000)
+        gender = st.selectbox("Gender", ["Male", "Female"])
+        marital_status = st.selectbox("Marital Status", ["Single", "Married", "Divorced", "Unmarried"])
+        occupation = st.selectbox("Occupation", ["Salaried", "Free Lancer", "Small Business", "Large Business"])
+        designation = st.selectbox("Designation", ["Executive", "Manager", "Senior Manager", "AVP", "VP"])
+        city_tier = st.selectbox("City Tier", [1, 2, 3])
+        passport = st.radio("Passport", ["Yes", "No"], horizontal=True)
+        passport = 1 if passport == "Yes" else 0
+        own_car = st.radio("Own Car", ["Yes", "No"], horizontal=True)
+        own_car = 1 if own_car == "Yes" else 0
 
-        with left:
-            st.markdown('<p class="section-header">📋 Customer Demographics</p>', unsafe_allow_html=True)
-
-            c1, c2 = st.columns(2)
-            with c1:
-                age = st.number_input("Age", 18, 80, 35)
-            with c2:
-                monthly_income = st.number_input("Income ($)", 5000, 100000, 25000, step=5000)
-
-            c1, c2 = st.columns(2)
-            with c1:
-                gender = st.selectbox("Gender", ["Male", "Female"])
-            with c2:
-                marital_status = st.selectbox("Marital", ["Single", "Married", "Divorced", "Unmarried"])
-
-            c1, c2 = st.columns(2)
-            with c1:
-                occupation = st.selectbox("Occupation", ["Salaried", "Free Lancer", "Small Business", "Large Business"])
-            with c2:
-                designation = st.selectbox("Designation", ["Executive", "Manager", "Senior Manager", "AVP", "VP"])
-
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                city_tier = st.selectbox("City", [1, 2, 3])
-            with c2:
-                passport = st.radio("Passport", ["Yes", "No"], horizontal=True)
-                passport = 1 if passport == "Yes" else 0
-            with c3:
-                own_car = st.radio("Car", ["Yes", "No"], horizontal=True)
-                own_car = 1 if own_car == "Yes" else 0
-
-        with right:
-            st.markdown('<p class="section-header">💼 Trip & Sales</p>', unsafe_allow_html=True)
-
-            c1, c2 = st.columns(2)
-            with c1:
-                type_of_contact = st.selectbox("Contact", ["Self Enquiry", "Company Invited"])
-            with c2:
-                product_pitched = st.selectbox("Product", ["Basic", "Standard", "Deluxe", "Super Deluxe", "King"])
-
-            c1, c2 = st.columns(2)
-            with c1:
-                num_persons = st.number_input("Persons", 1, 10, 3)
-            with c2:
-                num_children = st.number_input("Children", 0, 5, 0)
-
-            c1, c2 = st.columns(2)
-            with c1:
-                num_trips = st.number_input("Trips/yr", 0, 20, 3)
-            with c2:
-                preferred_star = st.selectbox("Hotel ⭐", [3.0, 3.5, 4.0, 4.5, 5.0], index=2)
-
-            c1, c2 = st.columns(2)
-            with c1:
-                duration_of_pitch = st.number_input("Pitch (min)", 1, 60, 15)
-            with c2:
-                num_followups = st.number_input("Follow-ups", 0, 10, 4)
-
-            pitch_satisfaction = st.select_slider("Satisfaction", options=[1, 2, 3, 4, 5], value=4)
+    with col2:
+        st.markdown('<p class="section-header">💼 Trip & Sales</p>', unsafe_allow_html=True)
+        type_of_contact = st.selectbox("Contact Type", ["Self Enquiry", "Company Invited"])
+        product_pitched = st.selectbox("Product", ["Basic", "Standard", "Deluxe", "Super Deluxe", "King"])
+        num_persons = st.number_input("Persons Visiting", 1, 10, 3)
+        num_children = st.number_input("Children (<5 yrs)", 0, 5, 0)
+        num_trips = st.number_input("Trips/Year", 0, 20, 3)
+        preferred_star = st.selectbox("Hotel Rating", [3.0, 3.5, 4.0, 4.5, 5.0], index=2)
+        duration_of_pitch = st.number_input("Pitch Duration (min)", 1, 60, 15)
+        num_followups = st.number_input("Follow-ups", 0, 10, 4)
+        pitch_satisfaction = st.select_slider("Satisfaction", options=[1, 2, 3, 4, 5], value=4)
 
     # Prepare input and predict (auto on any change)
     input_data = {
@@ -195,7 +157,8 @@ def main():
 
     df = prepare_input(input_data)
 
-    with pred_col:
+    with col3:
+        st.markdown('<p class="section-header">🎯 Prediction</p>', unsafe_allow_html=True)
         try:
             prediction = model.predict(df)[0]
             probability = model.predict_proba(df)[0]
@@ -239,7 +202,7 @@ def main():
                 }
             ))
             fig.update_layout(height=200, margin=dict(l=20, r=20, t=30, b=10))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         except Exception as e:
             st.error(f"Prediction Error: {str(e)}")
