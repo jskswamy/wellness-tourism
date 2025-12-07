@@ -1,6 +1,6 @@
 # Wellness Tourism MLOps Pipeline
 
-[![MLOps Pipeline](https://github.com/jskswamy/wellness-tourism-mlops/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jskswamy/wellness-tourism-mlops/actions/workflows/pipeline.yml)
+[![MLOps Pipeline](https://github.com/jskswamy/wellness-tourism/actions/workflows/pipeline.yml/badge.svg)](https://github.com/jskswamy/wellness-tourism/actions/workflows/pipeline.yml)
 
 ## Project Overview
 

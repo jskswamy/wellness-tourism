@@ -135,8 +135,13 @@ def main():
         - 🛫 Travel history
         - 👥 Family size
 
+        ### 🤖 Model Performance
+
         **Model:** {model_name}
-        **Accuracy:** {accuracy:.1%} | **F1:** {f1:.2f}
+
+        **Accuracy:** {accuracy:.1%}
+
+        **F1 Score:** {f1:.2f}
 
         [View Model Card](https://huggingface.co/{MODEL_REPO_ID})
         """)
